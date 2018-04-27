@@ -1,0 +1,54 @@
+---
+#Install Post OS packages and services
+- name: Post OS installation of packages and services
+  hosts: all
+  
+  tasks:
+    - name: Add epel-release repo 
+      yum: name=epel-release state=present
+
+    - name: Upgrade all the pkgs
+      yum: name=* state=latest
+
+    - name: Install Misc pkgs
+      yum: name={{ item }} state=present
+      with_items:
+          - wget
+          - htop
+          - mlocate 
+          - unzip
+          - chrony
+    
+    - name: Start Chronyd service
+      systemd: name=chronyd state=started
+
+    - name: Enable Chronyd service
+      systemd: name=chronyd enabled=yes
+
+    - name: JumpCloud LDAP Suite Sync
+      shell: "curl --silent --show-error --header 'x-connect-key: 09fba5c14fc2ca9e02353d828243aef25b089d97' https://kickstart.jumpcloud.com/Kickstart | sudo bash"
+      args:
+         executable: /bin/bash
+
+    - name: Get Telegraf RPM
+      shell: "wget https://dl.influxdata.com/telegraf/releases/telegraf-1.5.2-1.x86_64.rpm"
+      args: 
+         chdir: /tmp
+         executable: /bin/bash
+
+     - name: Install the package for Centos
+       command: yum localinstall -y /tmp/telegraf-1.5.2-1.x86_64.rpm
+     
+     - name: Configure the correct IP Addr
+       replace: dest=/etc/telegraf/telegraf.conf regexp='127.0.0.1:8086' replace='health.daisho.group:8086'
+     
+      - name: Start Telegraf service
+        systemd: name=telegraf state=started
+
+    - name: Enable Telegraf service
+      systemd: name=telegraf enabled=yes
+
+      
+
+     
+
